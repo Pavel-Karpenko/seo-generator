@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bullmq';
-import type { Queue } from 'bullmq';
+import { Queue, Job } from 'bullmq';
 import { Observable } from 'rxjs';
 import Redis from 'ioredis';
 import { v4 as uuidv4 } from 'uuid';
@@ -103,7 +103,6 @@ export class SeoService implements OnModuleDestroy {
       const redisOptions = this.configService.get('redis.options') ?? {};
       const redis = new Redis(this.redisUrl, {
         ...redisOptions,
-        // Use a dedicated connection for pub/sub — never share
         lazyConnect: false,
       });
 
@@ -175,7 +174,37 @@ export class SeoService implements OnModuleDestroy {
             subscriber.error(err);
             return;
           }
-          resetIdleTimer();
+
+          // Check if job already completed before we subscribed (race condition)
+          Job.fromId(this.seoQueue, jobId)
+            .then((job) => {
+              if (!job) { resetIdleTimer(); return; }
+
+              const result = job.returnvalue as SeoResult | undefined;
+              if (result && job.finishedOn) {
+                // Job already done — return cached result immediately
+                this.logger.debug({ correlationId, jobId }, 'Job already completed, replaying result');
+                const completeMsg: SeoStreamMessage = { type: 'complete', data: result };
+                subscriber.next({ type: 'complete', data: JSON.stringify(completeMsg) });
+                subscriber.complete();
+                return;
+              }
+
+              if (job.failedReason && job.attemptsMade >= (job.opts.attempts ?? 1)) {
+                const errMsg: SeoStreamMessage = {
+                  type: 'error',
+                  code: 'JOB_FAILED',
+                  message: job.failedReason,
+                };
+                subscriber.next({ type: 'error', data: JSON.stringify(errMsg) });
+                subscriber.complete();
+                return;
+              }
+
+              // Job still in progress — wait for pub/sub
+              resetIdleTimer();
+            })
+            .catch(() => resetIdleTimer());
         });
       });
 

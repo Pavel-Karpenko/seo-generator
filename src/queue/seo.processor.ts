@@ -1,5 +1,6 @@
 import { Processor, WorkerHost, OnWorkerEvent } from '@nestjs/bullmq';
 import type { Job } from 'bullmq';
+import type { SeoResult } from '../seo/schemas/seo-result.schema';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
@@ -45,7 +46,7 @@ export class SeoProcessor extends WorkerHost {
    * All error paths MUST publish a { type: 'error' } message followed by { type: 'done' }
    * so SSE clients are never left hanging.
    */
-  async process(job: Job<SeoJobData>): Promise<void> {
+  async process(job: Job<SeoJobData>): Promise<SeoResult | undefined> {
     const { jobId, product_name, category, keywords, session_id, correlationId } =
       job.data;
 
@@ -115,6 +116,8 @@ export class SeoProcessor extends WorkerHost {
         { correlationId, jobId },
         'SEO generation job completed successfully',
       );
+
+      return seoResult;
     } catch (err: unknown) {
       const { code, message } = classifyError(err);
 

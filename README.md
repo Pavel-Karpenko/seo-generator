@@ -88,7 +88,9 @@ docker compose logs -f flowise
 ### 3. Import the Flowise chatflow
 
 1. Open Flowise at [http://localhost:3001](http://localhost:3001)
-   - Default credentials: `admin` / `flowise_password`
+   - **First launch:** Flowise will show a registration form — create any username and password
+   - **Subsequent launches:** log in with the credentials you registered
+   - If you see a login screen instead of registration, use `admin` / `flowise_password` (set in `docker-compose.yml`)
 2. Click **Add New** → **Import** → select `flowise/seo-chatflow.json`
 3. Confirm the **ChatOllama** node has:
    - Base URL: `http://host.docker.internal:11434`

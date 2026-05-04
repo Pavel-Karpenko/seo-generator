@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { jsonrepair } from 'jsonrepair';
 
 // ---- Zod schema ----
 
@@ -84,21 +85,17 @@ export function extractAndValidate(raw: string): SeoResult {
 
     // Step 2: Extract JSON block from markdown/prose
     const match = JSON_BLOCK_REGEX.exec(trimmed);
-    if (!match) {
-      throw new SeoParseError(
-        `Failed to parse LLM output as JSON and no JSON block found. Parse error: ${parseError}`,
-        { raw: trimmed.slice(0, 500) },
-      );
-    }
+    const candidate = match ? match[0] : trimmed;
 
+    // Step 3: Repair malformed JSON (unescaped quotes, trailing commas, etc.)
     try {
-      parsed = JSON.parse(match[0]);
-    } catch (regexParseErr: unknown) {
+      parsed = JSON.parse(jsonrepair(candidate));
+    } catch (repairErr: unknown) {
       throw new SeoParseError(
-        `Found JSON block via regex but could not parse it. ` +
+        `Failed to parse or repair LLM JSON output. ` +
           `Original error: ${parseError}. ` +
-          `Regex block parse error: ${regexParseErr instanceof Error ? regexParseErr.message : String(regexParseErr)}`,
-        { extracted: match[0].slice(0, 500) },
+          `Repair error: ${repairErr instanceof Error ? repairErr.message : String(repairErr)}`,
+        { candidate: candidate.slice(0, 500) },
       );
     }
   }

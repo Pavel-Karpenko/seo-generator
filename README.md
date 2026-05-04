@@ -6,15 +6,15 @@ Generates complete SEO content for product pages using a local LLM via Ollama an
 
 ```json
 {
-  "title": "Wireless Noise-Cancelling Headphones | Premium Sound",
-  "meta_description": "Experience crystal-clear audio with 40h battery life. Shop wireless headphones with active noise cancellation. Free shipping. Order now.",
-  "h1": "Wireless Noise-Cancelling Headphones for Immersive Sound",
-  "description": "Designed for audiophiles and remote workers alike, these headphones deliver...",
+  "title": "Wireless Noise-Cancelling Headphones",
+  "meta_description": "Experience unparalleled sound quality and comfort in your daily routine. Our Bluetooth-enabled headphones offer a seamless connection to your favorite music or",
+  "h1": "Wireless Noise-Cancelling Bluetooth Headphones",
+  "description": "Boost your audio game with our wireless noise-canceling headphones. Connect to your devices effortlessly and enjoy crisp, clear sound without any background noise.",
   "bullets": [
-    "Active noise cancellation blocks up to 35dB of ambient sound",
-    "40-hour battery life with fast-charge (10 min = 3 hours)",
-    "Foldable design with premium carrying case included",
-    "Compatible with all Bluetooth 5.0 devices"
+    "Enhanced sound quality for music lovers",
+    "Bluetooth connectivity for seamless streaming",
+    "Noise-cancelling technology for a perfect listening experience",
+    "Versatile design for various applications"
   ]
 }
 ```
@@ -41,7 +41,7 @@ GET /api/seo/:jobId/stream  ←────────── SSE stream (tokens
 - **NestJS** handles HTTP, validation, and SSE streaming
 - **BullMQ** (concurrency: 2) queues requests so Ollama is never overloaded
 - **Flowise** orchestrates the LLM chain with prompt templating and Redis-backed chat history
-- **Ollama** runs `qwen2.5:3b` locally — fast, lightweight, good at structured JSON output
+- **Ollama** runs `qwen2.5:0.5b` locally — 400 MB, runs on any modern laptop
 
 ---
 
@@ -60,16 +60,17 @@ GET /api/seo/:jobId/stream  ←────────── SSE stream (tokens
 Download and install from [ollama.com](https://ollama.com/download), then pull the model:
 
 ```bash
-ollama pull qwen2.5:3b
+ollama pull qwen2.5:0.5b
 ```
 
 Verify it works:
 
 ```bash
-ollama run qwen2.5:3b "say hello in JSON"
+ollama run qwen2.5:0.5b "say hello in JSON"
 ```
 
-> `qwen2.5:3b` requires ~2 GB RAM and runs well on Apple Silicon and modern laptops.
+> `qwen2.5:0.5b` requires ~400 MB RAM and runs on any modern laptop including low-end hardware.  
+> For better output quality use `qwen2.5:3b` (~2 GB RAM) — update the model name in the Flowise chatflow node.
 
 ### 2. Start Redis and Flowise
 
@@ -77,7 +78,7 @@ ollama run qwen2.5:3b "say hello in JSON"
 docker compose up redis flowise -d
 ```
 
-Wait for Flowise to be ready (usually ~20 seconds):
+Wait for Flowise to be ready (usually ~20–30 seconds):
 
 ```bash
 docker compose logs -f flowise
@@ -89,13 +90,33 @@ docker compose logs -f flowise
 1. Open Flowise at [http://localhost:3001](http://localhost:3001)
    - Default credentials: `admin` / `flowise_password`
 2. Click **Add New** → **Import** → select `flowise/seo-chatflow.json`
-3. In the chatflow, click on the **ChatOllama** node and confirm:
+3. Confirm the **ChatOllama** node has:
    - Base URL: `http://host.docker.internal:11434`
-   - Model: `qwen2.5:3b`
-4. Click **Save** and then **Deploy**
-5. Copy the **Chatflow ID** from the URL bar (the UUID after `/chatflows/`)
+   - Model: `qwen2.5:0.5b`
 
-### 4. Configure environment
+### 4. Add Redis credential in Flowise
+
+The chatflow uses Redis-backed chat memory. You need to point it at the Redis container:
+
+1. In Flowise, go to **Credentials** (key icon in the left menu)
+2. Click **Add Credential** → select **Redis URL**
+3. Set **Redis URL** to: `redis://redis:6379`
+4. Save the credential
+5. Go back to the **seo-chatflow**, click the **Redis-Backed Chat Memory** node
+6. In **Connect Credential**, select the credential you just created
+7. Click the **🔄** button (top left) to save the chatflow
+
+### 5. Get the Chatflow ID
+
+After saving, copy the UUID from the browser URL bar:
+
+```
+http://localhost:3001/chatflows/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                this is your FLOWISE_CHATFLOW_ID
+```
+
+### 6. Configure environment
 
 ```bash
 cp .env.example .env
@@ -107,7 +128,7 @@ Open `.env` and fill in the chatflow ID:
 FLOWISE_CHATFLOW_ID=your-chatflow-uuid-here
 ```
 
-### 5. Install dependencies and start the API
+### 7. Install dependencies and start the API
 
 ```bash
 npm install
@@ -128,7 +149,7 @@ curl -s -X POST http://localhost:3000/api/generate-seo \
   -d '{
     "product_name": "Wireless Noise-Cancelling Headphones",
     "category": "Electronics",
-    "keywords": ["noise cancelling", "wireless", "bluetooth", "premium audio"]
+    "keywords": ["noise cancelling", "wireless", "bluetooth"]
   }' | jq
 ```
 
@@ -143,6 +164,8 @@ Response (202 Accepted):
 
 ### Stream the result (SSE)
 
+Connect to the stream URL immediately after getting the `jobId`:
+
 ```bash
 curl -N http://localhost:3000/api/seo/a1b2c3d4-.../stream
 ```
@@ -150,16 +173,29 @@ curl -N http://localhost:3000/api/seo/a1b2c3d4-.../stream
 You will receive a stream of events:
 
 ```
-data: {"type":"token","data":"{\n  \"title\":"}
+event: token
+data: {"type":"token","data":"{\""}
 
-data: {"type":"token","data":"\"Wireless Noise-Cancelling"}
+event: token
+data: {"type":"token","data":"title"}
 
 ...
 
+event: complete
 data: {"type":"complete","data":{"title":"...","meta_description":"...","h1":"...","description":"...","bullets":[...]}}
 
-data: {"type":"done"}
+event: error
+data: {"type":"error","code":"FLOWISE_TIMEOUT","message":"..."}
 ```
+
+Events:
+
+| Event | When |
+|---|---|
+| `token` | Each streamed token from the LLM |
+| `complete` | Full validated JSON result |
+| `error` | Processing failed (with error code and message) |
+| `done` | Stream closed (always sent last) |
 
 ### With session history (multi-turn)
 
@@ -185,8 +221,8 @@ curl http://localhost:3000/health
 ```json
 {
   "status": "ok",
-  "redis": "ok",
-  "flowise": "ok",
+  "redis": { "status": "ok", "latencyMs": 1 },
+  "flowise": { "status": "ok", "latencyMs": 12 },
   "uptime": 142
 }
 ```

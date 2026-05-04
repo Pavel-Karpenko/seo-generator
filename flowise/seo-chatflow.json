@@ -26,7 +26,7 @@
             "label": "Model Name",
             "name": "modelName",
             "type": "string",
-            "default": "qwen2.5:3b",
+            "default": "qwen2.5:0.5b",
             "id": "chatOllama_0-input-modelName-string"
           },
           {
@@ -108,7 +108,7 @@
         "inputAnchors": [],
         "inputs": {
           "baseUrl": "http://host.docker.internal:11434",
-          "modelName": "qwen2.5:3b",
+          "modelName": "qwen2.5:0.5b",
           "temperature": 0.3,
           "format": "json"
         },

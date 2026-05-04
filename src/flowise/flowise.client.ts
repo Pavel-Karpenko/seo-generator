@@ -159,7 +159,7 @@ export class FlowiseClient {
           if (event.type === 'token' && event.data) {
             tokenCount++;
             onTokenCount(tokenCount);
-            this.logger.trace(
+            this.logger.verbose(
               { correlationId, tokenCount },
               'SSE token received',
             );

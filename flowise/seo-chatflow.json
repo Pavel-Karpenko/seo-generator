@@ -1,0 +1,371 @@
+{
+  "nodes": [
+    {
+      "id": "chatOllama_0",
+      "position": { "x": 100, "y": 200 },
+      "type": "customNode",
+      "data": {
+        "id": "chatOllama_0",
+        "label": "ChatOllama",
+        "version": 4,
+        "name": "chatOllama",
+        "type": "ChatOllama",
+        "baseClasses": ["ChatOllama", "BaseChatModel", "BaseLanguageModel"],
+        "category": "Chat Models",
+        "description": "Chat completion using open-source LLM on Ollama",
+        "inputParams": [
+          {
+            "label": "Base URL",
+            "name": "baseUrl",
+            "type": "string",
+            "default": "http://host.docker.internal:11434",
+            "description": "Ollama base URL. Use host.docker.internal when Flowise runs in Docker.",
+            "id": "chatOllama_0-input-baseUrl-string"
+          },
+          {
+            "label": "Model Name",
+            "name": "modelName",
+            "type": "string",
+            "default": "qwen2.5:3b",
+            "id": "chatOllama_0-input-modelName-string"
+          },
+          {
+            "label": "Temperature",
+            "name": "temperature",
+            "type": "number",
+            "step": 0.1,
+            "default": 0.3,
+            "optional": true,
+            "id": "chatOllama_0-input-temperature-number"
+          },
+          {
+            "label": "Format",
+            "name": "format",
+            "type": "options",
+            "options": [
+              { "label": "Default", "name": "" },
+              { "label": "JSON", "name": "json" }
+            ],
+            "default": "json",
+            "optional": true,
+            "id": "chatOllama_0-input-format-options"
+          },
+          {
+            "label": "Top P",
+            "name": "topP",
+            "type": "number",
+            "step": 0.1,
+            "optional": true,
+            "additionalParams": true,
+            "id": "chatOllama_0-input-topP-number"
+          },
+          {
+            "label": "Top K",
+            "name": "topK",
+            "type": "number",
+            "step": 1,
+            "optional": true,
+            "additionalParams": true,
+            "id": "chatOllama_0-input-topK-number"
+          },
+          {
+            "label": "Num GPU",
+            "name": "numGpu",
+            "type": "number",
+            "step": 1,
+            "optional": true,
+            "additionalParams": true,
+            "id": "chatOllama_0-input-numGpu-number"
+          },
+          {
+            "label": "Num Thread",
+            "name": "numThread",
+            "type": "number",
+            "step": 1,
+            "optional": true,
+            "additionalParams": true,
+            "id": "chatOllama_0-input-numThread-number"
+          },
+          {
+            "label": "Repeat Last N",
+            "name": "repeatLastN",
+            "type": "number",
+            "step": 1,
+            "optional": true,
+            "additionalParams": true,
+            "id": "chatOllama_0-input-repeatLastN-number"
+          },
+          {
+            "label": "Repeat Penalty",
+            "name": "repeatPenalty",
+            "type": "number",
+            "step": 0.1,
+            "optional": true,
+            "additionalParams": true,
+            "id": "chatOllama_0-input-repeatPenalty-number"
+          }
+        ],
+        "inputAnchors": [],
+        "inputs": {
+          "baseUrl": "http://host.docker.internal:11434",
+          "modelName": "qwen2.5:3b",
+          "temperature": 0.3,
+          "format": "json"
+        },
+        "outputAnchors": [
+          {
+            "id": "chatOllama_0-output-chatOllama-ChatOllama|BaseChatModel|BaseLanguageModel",
+            "name": "chatOllama",
+            "label": "ChatOllama",
+            "description": "",
+            "type": "ChatOllama | BaseChatModel | BaseLanguageModel"
+          }
+        ],
+        "outputs": {},
+        "selected": false
+      }
+    },
+    {
+      "id": "redisBackedChatMemory_0",
+      "position": { "x": 100, "y": 500 },
+      "type": "customNode",
+      "data": {
+        "id": "redisBackedChatMemory_0",
+        "label": "Redis-Backed Chat Memory",
+        "version": 2,
+        "name": "RedisBackedChatMemory",
+        "type": "RedisBackedChatMemory",
+        "baseClasses": ["RedisBackedChatMemory", "BaseChatMemory", "BaseMemory"],
+        "category": "Memory",
+        "description": "Summarize the conversation and store the memory in Redis",
+        "inputParams": [
+          {
+            "label": "Connect Credential",
+            "name": "credentialId",
+            "type": "credential",
+            "credentialNames": ["redisCacheApi", "redisCacheUrlApi"],
+            "optional": true,
+            "id": "redisBackedChatMemory_0-input-credentialId-credential"
+          },
+          {
+            "label": "Session Id",
+            "name": "sessionId",
+            "type": "string",
+            "description": "If not specified, the first CHAT_MESSAGE_ID will be used as session ID",
+            "default": "",
+            "additionalParams": true,
+            "optional": true,
+            "id": "redisBackedChatMemory_0-input-sessionId-string"
+          },
+          {
+            "label": "Session Timeouts",
+            "name": "sessionTTL",
+            "type": "number",
+            "description": "Omit this parameter to make sessions never expire",
+            "additionalParams": true,
+            "optional": true,
+            "id": "redisBackedChatMemory_0-input-sessionTTL-number"
+          },
+          {
+            "label": "Memory Key",
+            "name": "memoryKey",
+            "type": "string",
+            "default": "chat_history",
+            "additionalParams": true,
+            "id": "redisBackedChatMemory_0-input-memoryKey-string"
+          }
+        ],
+        "inputAnchors": [],
+        "inputs": {
+          "sessionId": "{{overrideConfig.sessionId}}",
+          "sessionTTL": 3600,
+          "memoryKey": "chat_history"
+        },
+        "outputAnchors": [
+          {
+            "id": "redisBackedChatMemory_0-output-redisBackedChatMemory-RedisBackedChatMemory|BaseChatMemory|BaseMemory",
+            "name": "redisBackedChatMemory",
+            "label": "RedisBackedChatMemory",
+            "description": "",
+            "type": "RedisBackedChatMemory | BaseChatMemory | BaseMemory"
+          }
+        ],
+        "outputs": {},
+        "selected": false
+      }
+    },
+    {
+      "id": "chatPromptTemplate_0",
+      "position": { "x": 500, "y": 200 },
+      "type": "customNode",
+      "data": {
+        "id": "chatPromptTemplate_0",
+        "label": "Chat Prompt Template",
+        "version": 1,
+        "name": "chatPromptTemplate",
+        "type": "ChatPromptTemplate",
+        "baseClasses": ["ChatPromptTemplate", "BaseChatPromptTemplate", "BasePromptTemplate"],
+        "category": "Prompts",
+        "description": "Schema to represent a chat prompt",
+        "inputParams": [
+          {
+            "label": "System Message",
+            "name": "systemMessagePrompt",
+            "type": "string",
+            "rows": 10,
+            "placeholder": "You are a helpful assistant that translates {input_language} to {output_language}.",
+            "id": "chatPromptTemplate_0-input-systemMessagePrompt-string"
+          },
+          {
+            "label": "Human Message",
+            "name": "humanMessagePrompt",
+            "type": "string",
+            "rows": 4,
+            "placeholder": "{input}",
+            "id": "chatPromptTemplate_0-input-humanMessagePrompt-string"
+          },
+          {
+            "label": "Format Prompt Values",
+            "name": "promptValues",
+            "type": "json",
+            "optional": true,
+            "acceptVariable": true,
+            "list": true,
+            "id": "chatPromptTemplate_0-input-promptValues-json"
+          }
+        ],
+        "inputAnchors": [],
+        "inputs": {
+          "systemMessagePrompt": "You are an expert SEO copywriter. Generate SEO content for the product described. You MUST respond with ONLY valid JSON (no markdown, no explanation) matching exactly this structure:\n{\"title\":\"(≤60 chars, keyword-first)\",\"meta_description\":\"(≤160 chars, ends with CTA)\",\"h1\":\"(≤70 chars)\",\"description\":\"(150-250 words with keywords)\",\"bullets\":[\"benefit 1\",\"benefit 2\",\"benefit 3\",\"benefit 4\"]}\nProduct: {product_name}\nCategory: {category}\nKeywords: {keywords}",
+          "humanMessagePrompt": "{input}",
+          "promptValues": "{\"product_name\": \"\", \"category\": \"\", \"keywords\": \"\"}"
+        },
+        "outputAnchors": [
+          {
+            "id": "chatPromptTemplate_0-output-chatPromptTemplate-ChatPromptTemplate|BaseChatPromptTemplate|BasePromptTemplate",
+            "name": "chatPromptTemplate",
+            "label": "ChatPromptTemplate",
+            "description": "",
+            "type": "ChatPromptTemplate | BaseChatPromptTemplate | BasePromptTemplate"
+          }
+        ],
+        "outputs": {},
+        "selected": false
+      }
+    },
+    {
+      "id": "llmChain_0",
+      "position": { "x": 900, "y": 350 },
+      "type": "customNode",
+      "data": {
+        "id": "llmChain_0",
+        "label": "LLM Chain",
+        "version": 3,
+        "name": "llmChain",
+        "type": "LLMChain",
+        "baseClasses": ["LLMChain", "BaseChain", "Runnable"],
+        "category": "Chains",
+        "description": "Chain to run queries against LLMs",
+        "inputParams": [
+          {
+            "label": "Chain Name",
+            "name": "chainName",
+            "type": "string",
+            "placeholder": "Name Your Chain",
+            "optional": true,
+            "id": "llmChain_0-input-chainName-string"
+          }
+        ],
+        "inputAnchors": [
+          {
+            "label": "Language Model",
+            "name": "model",
+            "type": "BaseLanguageModel",
+            "id": "llmChain_0-input-model-BaseLanguageModel"
+          },
+          {
+            "label": "Prompt",
+            "name": "prompt",
+            "type": "BasePromptTemplate",
+            "id": "llmChain_0-input-prompt-BasePromptTemplate"
+          },
+          {
+            "label": "Memory",
+            "name": "memory",
+            "type": "BaseChatMemory",
+            "optional": true,
+            "id": "llmChain_0-input-memory-BaseChatMemory"
+          },
+          {
+            "label": "Input Moderation",
+            "description": "Detect text that could generate harmful output and prevent it from being sent to the language model",
+            "name": "inputModeration",
+            "type": "Moderation",
+            "optional": true,
+            "list": true,
+            "id": "llmChain_0-input-inputModeration-Moderation"
+          }
+        ],
+        "inputs": {
+          "model": "{{chatOllama_0.data.instance}}",
+          "prompt": "{{chatPromptTemplate_0.data.instance}}",
+          "memory": "{{redisBackedChatMemory_0.data.instance}}",
+          "chainName": "SEO Generator Chain"
+        },
+        "outputAnchors": [
+          {
+            "name": "output",
+            "label": "Output",
+            "type": "options",
+            "description": "",
+            "options": [
+              {
+                "id": "llmChain_0-output-llmChain-LLMChain|BaseChain|Runnable",
+                "name": "llmChain",
+                "label": "LLM Chain",
+                "description": "",
+                "type": "LLMChain | BaseChain | Runnable"
+              },
+              {
+                "id": "llmChain_0-output-outputPrediction-string|json",
+                "name": "outputPrediction",
+                "label": "Output Prediction",
+                "description": "",
+                "type": "string | json"
+              }
+            ],
+            "default": "llmChain"
+          }
+        ],
+        "outputs": { "output": "llmChain" },
+        "selected": false
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "chatOllama_0",
+      "sourceHandle": "chatOllama_0-output-chatOllama-ChatOllama|BaseChatModel|BaseLanguageModel",
+      "target": "llmChain_0",
+      "targetHandle": "llmChain_0-input-model-BaseLanguageModel",
+      "type": "buttonedge",
+      "id": "chatOllama_0-chatOllama_0-output-chatOllama-ChatOllama|BaseChatModel|BaseLanguageModel-llmChain_0-llmChain_0-input-model-BaseLanguageModel"
+    },
+    {
+      "source": "chatPromptTemplate_0",
+      "sourceHandle": "chatPromptTemplate_0-output-chatPromptTemplate-ChatPromptTemplate|BaseChatPromptTemplate|BasePromptTemplate",
+      "target": "llmChain_0",
+      "targetHandle": "llmChain_0-input-prompt-BasePromptTemplate",
+      "type": "buttonedge",
+      "id": "chatPromptTemplate_0-chatPromptTemplate_0-output-chatPromptTemplate-ChatPromptTemplate|BaseChatPromptTemplate|BasePromptTemplate-llmChain_0-llmChain_0-input-prompt-BasePromptTemplate"
+    },
+    {
+      "source": "redisBackedChatMemory_0",
+      "sourceHandle": "redisBackedChatMemory_0-output-redisBackedChatMemory-RedisBackedChatMemory|BaseChatMemory|BaseMemory",
+      "target": "llmChain_0",
+      "targetHandle": "llmChain_0-input-memory-BaseChatMemory",
+      "type": "buttonedge",
+      "id": "redisBackedChatMemory_0-redisBackedChatMemory_0-output-redisBackedChatMemory-RedisBackedChatMemory|BaseChatMemory|BaseMemory-llmChain_0-llmChain_0-input-memory-BaseChatMemory"
+    }
+  ]
+}

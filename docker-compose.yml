@@ -1,0 +1,103 @@
+version: '3.9'
+
+networks:
+  seo-net:
+    driver: bridge
+
+volumes:
+  redis-data:
+  flowise-data:
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: seo-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save 60 1
+      --save 300 10
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+    networks:
+      - seo-net
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  flowise:
+    image: flowiseai/flowise:latest
+    container_name: seo-flowise
+    restart: unless-stopped
+    environment:
+      - PORT=3001
+      - FLOWISE_USERNAME=admin
+      - FLOWISE_PASSWORD=flowise_password
+      - DATABASE_PATH=/root/.flowise
+      - SECRETKEY_PATH=/root/.flowise
+      - LOG_PATH=/root/.flowise/logs
+      - BLOB_STORAGE_PATH=/root/.flowise/storage
+      - APIKEY_PATH=/root/.flowise
+      # Ollama runs on host machine — use host.docker.internal
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      # Redis for chat memory
+      - REDIS_URL=redis://redis:6379
+    ports:
+      - '3001:3001'
+    volumes:
+      - flowise-data:/root/.flowise
+      - ./flowise:/root/.flowise/chatflows
+    networks:
+      - seo-net
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3001/api/v1/ping']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: seo-app
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - REDIS_URL=redis://redis:6379
+      - FLOWISE_BASE_URL=http://flowise:3001
+      - FLOWISE_CHATFLOW_ID=${FLOWISE_CHATFLOW_ID}
+      - FLOWISE_API_KEY=${FLOWISE_API_KEY}
+      - FLOWISE_TIMEOUT_MS=${FLOWISE_TIMEOUT_MS:-90000}
+      - QUEUE_CONCURRENCY=${QUEUE_CONCURRENCY:-2}
+    ports:
+      - '3000:3000'
+    networks:
+      - seo-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      flowise:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s

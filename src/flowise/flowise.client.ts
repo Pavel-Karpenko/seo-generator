@@ -217,14 +217,15 @@ function parseBlock(block: string): FlowiseSseEvent | null {
         ? json.data
         : JSON.stringify(json.data ?? '');
 
+    // Flowise emits a 'start' event with the same first chunk as the following
+    // 'token' event — skip it to avoid double-accumulation in the buffer
+    if (eventType === 'start') return null;
     if (eventType === 'token') return { type: 'token', data };
     if (eventType === 'end') return { type: 'end', data };
     if (eventType === 'error') {
       return { type: 'error', data: data || (json.message ?? 'Unknown error') };
     }
 
-    // Unknown event types — treat as token data if there is data
-    if (data) return { type: 'token', data };
     return null;
   } catch {
     // Non-JSON data: treat as raw token

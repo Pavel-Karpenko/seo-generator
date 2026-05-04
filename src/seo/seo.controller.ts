@@ -29,7 +29,6 @@ interface MessageEvent {
 }
 
 @Controller()
-@UseInterceptors(CorrelationIdInterceptor)
 export class SeoController {
   private readonly logger = new Logger(SeoController.name);
 
@@ -42,6 +41,7 @@ export class SeoController {
    */
   @Post('api/generate-seo')
   @HttpCode(HttpStatus.ACCEPTED)
+  @UseInterceptors(CorrelationIdInterceptor)
   async generateSeo(
     @Body() dto: GenerateSeoDto,
     @Req() req: Request & { correlationId?: string },

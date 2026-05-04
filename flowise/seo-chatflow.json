@@ -236,7 +236,7 @@
         ],
         "inputAnchors": [],
         "inputs": {
-          "systemMessagePrompt": "You are an expert SEO copywriter. Generate SEO content for the product described. You MUST respond with ONLY valid JSON (no markdown, no explanation) matching exactly this structure:\n{\"title\":\"(≤60 chars, keyword-first)\",\"meta_description\":\"(≤160 chars, ends with CTA)\",\"h1\":\"(≤70 chars)\",\"description\":\"(150-250 words with keywords)\",\"bullets\":[\"benefit 1\",\"benefit 2\",\"benefit 3\",\"benefit 4\"]}\nProduct: {product_name}\nCategory: {category}\nKeywords: {keywords}",
+          "systemMessagePrompt": "You are an SEO copywriter. Given a product, return ONLY a JSON object with these exact keys: title, meta_description, h1, description, bullets.\n\nExample:\nProduct: Leather Wallet, Category: Accessories, Keywords: slim, rfid, genuine leather\nOutput: {\"title\":\"Slim RFID Leather Wallet for Men\",\"meta_description\":\"Premium genuine leather wallet with RFID blocking. Slim design fits any pocket. Shop now.\",\"h1\":\"Slim Genuine Leather RFID Blocking Wallet\",\"description\":\"Crafted from genuine leather, this slim wallet features RFID blocking technology to protect your cards. Its minimalist design holds up to 8 cards and cash without bulk. Perfect for everyday carry.\",\"bullets\":[\"RFID blocking protects your credit cards\",\"Genuine leather for durability and style\",\"Slim profile fits comfortably in any pocket\",\"Holds up to 8 cards and cash\"]}\n\nNow generate for the product in the user message. Return ONLY the JSON, nothing else.",
           "humanMessagePrompt": "{input}",
           "promptValues": "{\"product_name\": \"\", \"category\": \"\", \"keywords\": \"\"}"
         },

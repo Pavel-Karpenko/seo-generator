@@ -20,13 +20,13 @@ export const SeoResultSchema = z.object({
 
   description: z
     .string()
-    .min(150, 'description must be at least 150 characters')
-    .max(250, 'description must be at most 250 characters'),
+    .min(1, 'description must not be empty')
+    .max(2000, 'description must be at most 2000 characters'),
 
   bullets: z
     .array(z.string().min(1, 'bullet must not be empty'))
-    .min(4, 'bullets must contain at least 4 items')
-    .max(6, 'bullets must contain at most 6 items'),
+    .min(3, 'bullets must contain at least 3 items')
+    .max(8, 'bullets must contain at most 8 items'),
 });
 
 export type SeoResult = z.infer<typeof SeoResultSchema>;
@@ -46,9 +46,15 @@ export class SeoParseError extends Error {
 }
 
 // ---- Regex for extracting JSON from LLM markdown output ----
-// Matches the outermost `{...}` block, including nested braces.
-// Using a greedy match that handles nested structures.
 const JSON_BLOCK_REGEX = /\{[\s\S]*\}/;
+
+/** Truncate string to maxLen, breaking at the last word boundary */
+function truncateAtWord(str: string, maxLen: number): string {
+  if (str.length <= maxLen) return str;
+  const cut = str.slice(0, maxLen);
+  const lastSpace = cut.lastIndexOf(' ');
+  return (lastSpace > 0 ? cut.slice(0, lastSpace) : cut).trimEnd();
+}
 
 /**
  * Attempts to extract and validate a SeoResult from raw LLM output.
@@ -97,7 +103,25 @@ export function extractAndValidate(raw: string): SeoResult {
     }
   }
 
-  // Step 3: Validate against Zod schema
+  // Step 3: Normalise fields that small models reliably exceed
+  // Truncate at word boundary to avoid cutting mid-word
+  if (typeof (parsed as Record<string, unknown>)['title'] === 'string') {
+    (parsed as Record<string, unknown>)['title'] = truncateAtWord(
+      (parsed as Record<string, string>)['title'], 60,
+    );
+  }
+  if (typeof (parsed as Record<string, unknown>)['meta_description'] === 'string') {
+    (parsed as Record<string, unknown>)['meta_description'] = truncateAtWord(
+      (parsed as Record<string, string>)['meta_description'], 160,
+    );
+  }
+  if (typeof (parsed as Record<string, unknown>)['h1'] === 'string') {
+    (parsed as Record<string, unknown>)['h1'] = truncateAtWord(
+      (parsed as Record<string, string>)['h1'], 70,
+    );
+  }
+
+  // Step 4: Validate against Zod schema
   const result = SeoResultSchema.safeParse(parsed);
 
   if (!result.success) {
